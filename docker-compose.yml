@@ -1,0 +1,32 @@
+name: hr-project
+
+services:
+  hr-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hr_dev_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-hrproject}
+    ports:
+      - "5433:5432"
+    volumes:
+      - hr_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hr} -d ${POSTGRES_DB:-hrproject}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  hr-api:
+    build: .
+    depends_on:
+      hr-db:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hr}:${POSTGRES_PASSWORD:-hr_dev_pw}@hr-db:5432/${POSTGRES_DB:-hrproject}?schema=public
+    ports:
+      - "3001:3001"
+
+volumes:
+  hr_db_data:

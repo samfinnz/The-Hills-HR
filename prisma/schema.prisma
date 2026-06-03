@@ -1,0 +1,430 @@
+// HR Project — Prisma schema
+//
+// Grounded in Data-HR.md (M03 Employee Registry + M17 HR overlay) and the
+// SharePoint FO-HR forms inventory (Findings-SharePoint-Review.md). Every record
+// carries facilityId from day one (design rule).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------- core --------
+
+model Facility {
+  id          String       @id @default(uuid())
+  name        String
+  nameTh      String?
+  legalEntity String? // e.g. "Mantra Asset Co., Ltd."
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  employees   Employee[]
+  departments Department[]
+  rosters     Roster[]
+  contractors Contractor[]
+
+  @@map("facility")
+}
+
+model Department {
+  id          String     @id @default(uuid())
+  facilityId  String     @map("facility_id")
+  facility    Facility   @relation(fields: [facilityId], references: [id])
+  // The 17 SharePoint dept codes: AD HR AC PU SM NU CN SU HK FB TE GA SE HO FI CO AM
+  code        String
+  name        String
+  nameTh      String?
+  description String?
+  createdAt   DateTime   @default(now())
+  positions   Position[]
+  employees   Employee[]
+  rosters     Roster[]
+
+  @@unique([facilityId, code])
+  @@map("department")
+}
+
+model Position {
+  id           String     @id @default(uuid())
+  departmentId String     @map("department_id")
+  department   Department @relation(fields: [departmentId], references: [id])
+  code         String
+  title        String
+  titleTh      String?
+  isHodTitle   Boolean    @default(false) @map("is_hod_title")
+  createdAt    DateTime   @default(now())
+  employees    Employee[]
+
+  @@unique([departmentId, code])
+  @@map("position")
+}
+
+enum EmploymentTerm {
+  PERMANENT
+  DAILY_WAGES
+  PROBATIONARY
+  FIXED_TERM
+  CONTRACTOR // service-provider registry (Yoga / Art / Monk / Sound Healing — paid via M15 PV)
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  PROBATION
+  ON_LEAVE
+  SUSPENDED
+  SEPARATED
+}
+
+enum DocumentChecklistStatus {
+  MISSING
+  ON_FILE
+  STALE
+  WAIVED
+}
+
+enum RosterStatus {
+  DRAFT
+  PUBLISHED
+  EXPORTED_TO_HUMANSOFT
+  ARCHIVED
+}
+
+enum ShiftType {
+  DAY
+  EVENING
+  NIGHT
+  ON_CALL
+  OFF
+}
+
+enum EvaluationStatus {
+  DRAFT
+  SENT_TO_EMPLOYEE
+  DISCUSSION_HELD
+  SIGNED_OFF
+  ARCHIVED
+}
+
+enum OverallRating {
+  OUTSTANDING
+  EXCEEDS_EXPECTATIONS
+  MEETS_EXPECTATIONS
+  NEEDS_IMPROVEMENT
+  UNSATISFACTORY
+}
+
+enum EvaluationWeightingSet {
+  STAFF
+  MANAGER
+}
+
+enum ContractorServiceCategory {
+  YOGA_MOVEMENT
+  ART_THERAPY
+  RELIGIOUS_SPIRITUAL
+  SOUND_HEALING
+  MUSIC_ARTS_PERFORMANCE
+  SPECIALIST_THERAPY
+  OTHER
+}
+
+enum ContractorPaymentMethod {
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+}
+
+enum ContractorPaymentTerms {
+  PER_SESSION
+  PER_HOUR
+  PER_MONTH
+  PER_VISIT
+  OTHER
+}
+
+enum ContractorStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+}
+
+enum ContractorPaymentStatus {
+  PENDING
+  SUBMITTED_TO_WORK_FLOW
+  PAID
+}
+
+enum AnnualComplianceType {
+  SOCIAL_SECURITY
+  GROUP_INSURANCE
+  HEALTH_CHECKUP
+}
+
+enum AnnualComplianceStatus {
+  NOT_STARTED
+  SCHEDULED
+  COMPLETED
+  OVERDUE
+  RENEWAL_DUE
+}
+
+model Employee {
+  id         String   @id @default(uuid())
+  facilityId String   @map("facility_id")
+  facility   Facility @relation(fields: [facilityId], references: [id])
+
+  // identity
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  firstNameTh String?   @map("first_name_th")
+  lastNameTh  String?   @map("last_name_th")
+  nickname    String? // Thai-style short name (e.g. "Yim")
+  dateOfBirth DateTime? @map("date_of_birth")
+  nationality String? // ISO country code (e.g. TH, NL, US)
+  religion    String?
+  pronouns    String?
+
+  // contact
+  email String? @unique
+  phone String?
+
+  // employment
+  departmentId       String?          @map("department_id")
+  department         Department?      @relation(fields: [departmentId], references: [id])
+  positionId         String?          @map("position_id")
+  position           Position?        @relation(fields: [positionId], references: [id])
+  isHod              Boolean          @default(false) @map("is_hod")
+  managerId          String?          @map("manager_id")
+  manager            Employee?        @relation("EmployeeManager", fields: [managerId], references: [id])
+  reports            Employee[]       @relation("EmployeeManager")
+  employmentTerm     EmploymentTerm   @default(PROBATIONARY) @map("employment_term")
+  employmentStatus   EmploymentStatus @default(PROBATION) @map("employment_status")
+  hireDate           DateTime?        @map("hire_date")
+  probationEndDate   DateTime?        @map("probation_end_date")
+  permanentSinceDate DateTime?        @map("permanent_since_date")
+  separationDate     DateTime?        @map("separation_date")
+
+  // related
+  foreignCompliance     ForeignEmployeeCompliance?
+  certifications        Certification[]
+  documentChecklist     DocumentChecklistItem[]
+  rostersAuthored       Roster[]                   @relation("RosterAuthor")
+  rosterEntries         RosterEntry[]
+  evaluations           PerformanceEvaluation[]    @relation("EmployeeEvaluations")
+  evaluationsGiven      PerformanceEvaluation[]    @relation("EvaluationEvaluator")
+  evaluationsOwnedByHr  PerformanceEvaluation[]    @relation("EvaluationHrOwner")
+  annualComplianceItems AnnualComplianceItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("employee")
+}
+
+// Foreign-employee compliance — passport / visa / work permit
+// (Data-HR.md foreign-employee compliance sub-record)
+model ForeignEmployeeCompliance {
+  id                     String    @id @default(uuid())
+  employeeId             String    @unique @map("employee_id")
+  employee               Employee  @relation(fields: [employeeId], references: [id])
+  passportNumber         String?   @map("passport_number")
+  passportIssuingCountry String?   @map("passport_issuing_country")
+  passportExpiry         DateTime? @map("passport_expiry")
+  visaType               String?   @map("visa_type")
+  visaNumber             String?   @map("visa_number")
+  visaExpiry             DateTime? @map("visa_expiry")
+  workPermitNumber       String?   @map("work_permit_number")
+  workPermitExpiry       DateTime? @map("work_permit_expiry")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  @@map("foreign_employee_compliance")
+}
+
+// Certifications + licenses — drive renewal alerts (the M18 pattern, 60d default lead)
+model Certification {
+  id                String    @id @default(uuid())
+  employeeId        String    @map("employee_id")
+  employee          Employee  @relation(fields: [employeeId], references: [id])
+  name              String // e.g. "Nursing License", "Food Handler"
+  nameTh            String?
+  issuingAuthority  String?   @map("issuing_authority")
+  certificateNumber String?   @map("certificate_number")
+  issueDate         DateTime? @map("issue_date")
+  expiryDate        DateTime? @map("expiry_date")
+  isRequiredForRole Boolean   @default(false) @map("is_required_for_role")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("certification")
+}
+
+// Required photocopies / evidence held in M04 Document Vault.
+// The record tracks whether HR has the document, not the document binary itself.
+model DocumentChecklistItem {
+  id           String                  @id @default(uuid())
+  employeeId   String                  @map("employee_id")
+  employee     Employee                @relation(fields: [employeeId], references: [id])
+  documentName String                  @map("document_name")
+  category     String? // standard, role-specific, foreign, tax, bank, etc.
+  requiredFor  String?                 @map("required_for")
+  documentId   String?                 @map("document_id") // M04 reference
+  status       DocumentChecklistStatus @default(MISSING)
+  dueDate      DateTime?               @map("due_date")
+  expiryDate   DateTime?               @map("expiry_date")
+  notes        String?
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  @@index([employeeId, status])
+  @@map("document_checklist_item")
+}
+
+// HOD-authored roster, replacing the current SharePoint authoring step.
+model Roster {
+  id                    String        @id @default(uuid())
+  facilityId            String        @map("facility_id")
+  facility              Facility      @relation(fields: [facilityId], references: [id])
+  departmentId          String        @map("department_id")
+  department            Department    @relation(fields: [departmentId], references: [id])
+  periodStart           DateTime      @map("period_start")
+  periodEnd             DateTime      @map("period_end")
+  authoredByHodId       String        @map("authored_by_hod_id")
+  authoredByHod         Employee      @relation("RosterAuthor", fields: [authoredByHodId], references: [id])
+  status                RosterStatus  @default(DRAFT)
+  publishedAt           DateTime?     @map("published_at")
+  exportedToHumanSoftAt DateTime?     @map("exported_to_human_soft_at")
+  notes                 String?
+  entries               RosterEntry[]
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  @@index([departmentId, periodStart, periodEnd])
+  @@map("roster")
+}
+
+model RosterEntry {
+  id             String    @id @default(uuid())
+  rosterId       String    @map("roster_id")
+  roster         Roster    @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  employeeId     String    @map("employee_id")
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  shiftDate      DateTime  @map("shift_date")
+  shiftStart     DateTime? @map("shift_start")
+  shiftEnd       DateTime? @map("shift_end")
+  shiftType      ShiftType @default(DAY) @map("shift_type")
+  areaAssignment String?   @map("area_assignment")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([employeeId, shiftDate])
+  @@map("roster_entry")
+}
+
+// Formal periodic evaluation. KPI/core/functional scores mirror the HR Excel layout.
+model PerformanceEvaluation {
+  id                         String                 @id @default(uuid())
+  employeeId                 String                 @map("employee_id")
+  employee                   Employee               @relation("EmployeeEvaluations", fields: [employeeId], references: [id])
+  periodStart                DateTime               @map("period_start")
+  periodEnd                  DateTime               @map("period_end")
+  evaluatorId                String?                @map("evaluator_id")
+  evaluator                  Employee?              @relation("EvaluationEvaluator", fields: [evaluatorId], references: [id])
+  hrOwnerId                  String?                @map("hr_owner_id")
+  hrOwner                    Employee?              @relation("EvaluationHrOwner", fields: [hrOwnerId], references: [id])
+  scheduledMeetingAt         DateTime?              @map("scheduled_meeting_at")
+  actualMeetingAt            DateTime?              @map("actual_meeting_at")
+  status                     EvaluationStatus       @default(DRAFT)
+  overallRating              OverallRating?         @map("overall_rating")
+  weightingSet               EvaluationWeightingSet @default(STAFF) @map("weighting_set")
+  kpiScore                   Decimal?               @map("kpi_score") @db.Decimal(5, 2)
+  coreCompetencyScore        Decimal?               @map("core_competency_score") @db.Decimal(5, 2)
+  functionalCompetencyScore  Decimal?               @map("functional_competency_score") @db.Decimal(5, 2)
+  weightedTotal              Decimal?               @map("weighted_total") @db.Decimal(5, 2)
+  strengths                  String?
+  areasForDevelopment        String?                @map("areas_for_development")
+  goalsNextPeriod            Json?                  @map("goals_next_period")
+  employeeComments           String?                @map("employee_comments")
+  signedEvaluationDocumentId String?                @map("signed_evaluation_document_id")
+  linkedActions              Json?                  @map("linked_actions")
+  createdAt                  DateTime               @default(now()) @map("created_at")
+  updatedAt                  DateTime               @updatedAt @map("updated_at")
+
+  @@index([employeeId, periodStart, periodEnd])
+  @@map("performance_evaluation")
+}
+
+// Contractor / temporary service-provider registry. Contractors are outside HumanSoft.
+model Contractor {
+  id              String                    @id @default(uuid())
+  facilityId      String                    @map("facility_id")
+  facility        Facility                  @relation(fields: [facilityId], references: [id])
+  name            String
+  serviceCategory ContractorServiceCategory @map("service_category")
+  phone           String?
+  email           String?
+  taxId           String?                   @map("tax_id")
+  paymentMethod   ContractorPaymentMethod   @default(BANK_TRANSFER) @map("payment_method")
+  paymentTerms    ContractorPaymentTerms    @default(PER_SESSION) @map("payment_terms")
+  standardRate    Decimal?                  @map("standard_rate") @db.Decimal(12, 2)
+  linkedDocuments Json?                     @map("linked_documents")
+  status          ContractorStatus          @default(ACTIVE)
+  notes           String?
+  sessions        ContractorSession[]
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+
+  @@index([facilityId, status])
+  @@map("contractor")
+}
+
+model ContractorSession {
+  id               String                    @id @default(uuid())
+  contractorId     String                    @map("contractor_id")
+  contractor       Contractor                @relation(fields: [contractorId], references: [id])
+  sessionDate      DateTime                  @map("session_date")
+  serviceType      ContractorServiceCategory @map("service_type")
+  clientAttendance Json?                     @map("client_attendance")
+  durationHours    Decimal?                  @map("duration_hours") @db.Decimal(6, 2)
+  agreedRate       Decimal?                  @map("agreed_rate") @db.Decimal(12, 2)
+  totalAmount      Decimal?                  @map("total_amount") @db.Decimal(12, 2)
+  notes            String?
+  linkedPvId       String?                   @map("linked_pv_id")
+  linkedReceiptId  String?                   @map("linked_receipt_id")
+  paymentStatus    ContractorPaymentStatus   @default(PENDING) @map("payment_status")
+  paidDate         DateTime?                 @map("paid_date")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+
+  @@index([contractorId, sessionDate])
+  @@index([paymentStatus])
+  @@map("contractor_session")
+}
+
+// Social security, group insurance, and annual health checkup tracking.
+model AnnualComplianceItem {
+  id                 String                 @id @default(uuid())
+  employeeId         String                 @map("employee_id")
+  employee           Employee               @relation(fields: [employeeId], references: [id])
+  type               AnnualComplianceType
+  provider           String?
+  policyNumber       String?                @map("policy_number")
+  coverageStart      DateTime?              @map("coverage_start")
+  coverageEnd        DateTime?              @map("coverage_end")
+  scheduledAt        DateTime?              @map("scheduled_at")
+  completedAt        DateTime?              @map("completed_at")
+  latestDocumentId   String?                @map("latest_document_id")
+  status             AnnualComplianceStatus @default(NOT_STARTED)
+  responsibleAdminId String?                @map("responsible_admin_id")
+  notes              String?
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+
+  @@index([employeeId, type])
+  @@index([type, status])
+  @@map("annual_compliance_item")
+}

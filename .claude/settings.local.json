@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(docker --version)",
+      "PowerShell(docker-compose --version)",
+      "PowerShell(winget --version)",
+      "PowerShell(winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements)",
+      "PowerShell(winget install --id Docker.DockerDesktop -e --source winget --accept-package-agreements --accept-source-agreements)",
+      "PowerShell(code --install-extension Prisma.prisma)",
+      "PowerShell(code --install-extension dbaeumer.vscode-eslint)",
+      "PowerShell(code --install-extension humao.rest-client)",
+      "PowerShell(code --install-extension rangav.vscode-thunder-client)",
+      "PowerShell(code --install-extension eamodio.gitlens)",
+      "PowerShell($codeCmd = \\(Get-Command code -ErrorAction SilentlyContinue\\).Source; if \\(-not $codeCmd\\) { $codeCmd = \"C:\\\\Users\\\\nattw\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\bin\\\\code\" }; Write-Output \"Code path: $codeCmd\"; & $codeCmd --version)",
+      "PowerShell($codeCli = \"C:\\\\Users\\\\nattw\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\bin\\\\code.cmd\"; if \\(Test-Path $codeCli\\) { Write-Output \"Found at $codeCli\" } else { Get-ChildItem \"C:\\\\Users\\\\nattw\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\bin\\\\\" -ErrorAction SilentlyContinue })",
+      "PowerShell($cli = \"C:\\\\Users\\\\nattw\\\\AppData\\\\Local\\\\Programs\\\\Microsoft VS Code\\\\bin\\\\code.cmd\"; & $cli --install-extension Prisma.prisma 2>&1; & $cli --install-extension dbaeumer.vscode-eslint 2>&1; & $cli --install-extension humao.rest-client 2>&1; & $cli --install-extension rangav.vscode-thunder-client 2>&1; & $cli --install-extension eamodio.gitlens 2>&1)"
+    ]
+  }
+}
