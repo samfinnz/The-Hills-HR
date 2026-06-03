@@ -15,7 +15,7 @@ import {
   UpdateRosterStatusDto,
 } from './dto/create-roster.dto';
 
-@Controller('rosters')
+@Controller('api/rosters')
 export class RostersController {
   constructor(private readonly svc: RostersService) {}
 

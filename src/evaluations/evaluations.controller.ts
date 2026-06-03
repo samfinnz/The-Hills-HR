@@ -5,7 +5,7 @@ import {
   UpdateEvaluationDto,
 } from './dto/create-evaluation.dto';
 
-@Controller('evaluations')
+@Controller('api/evaluations')
 export class EvaluationsController {
   constructor(private readonly svc: EvaluationsService) {}
 

@@ -20,6 +20,18 @@ async function bootstrap() {
       'dashboard/(.*)',
       'staff',
       'staff/(.*)',
+      'api/rosters',
+      'api/rosters/(.*)',
+      'rosters',
+      'rosters/(.*)',
+      'api/contractors',
+      'api/contractors/(.*)',
+      'contractors',
+      'contractors/(.*)',
+      'api/evaluations',
+      'api/evaluations/(.*)',
+      'evaluations',
+      'evaluations/(.*)',
     ],
   });
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;

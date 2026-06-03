@@ -8,7 +8,7 @@ npx prisma db push --skip-generate
 EMP_COUNT=$(node -e "const p=new (require('@prisma/client').PrismaClient)();p.employee.count().then(n=>{console.log(n);process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})" 2>/dev/null || echo "0")
 if [ "$EMP_COUNT" = "0" ]; then
   echo "[entrypoint] Empty employee table — running seed..."
-  npx ts-node prisma/seed.ts || echo "[entrypoint] seed failed (non-fatal); continuing"
+  npx ts-node --transpile-only --compiler-options '{"module":"commonjs"}' prisma/seed.ts || echo "[entrypoint] seed failed (non-fatal); continuing"
 else
   echo "[entrypoint] $EMP_COUNT employees already present; skipping seed"
 fi

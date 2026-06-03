@@ -7,7 +7,7 @@ import {
   UpdateContractorSessionDto,
 } from './dto/create-contractor.dto';
 
-@Controller('contractors')
+@Controller('api/contractors')
 export class ContractorsController {
   constructor(private readonly svc: ContractorsService) {}
 
