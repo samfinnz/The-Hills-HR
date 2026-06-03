@@ -67,10 +67,9 @@ export class UiController {
   @Header('Content-Type', 'text/html; charset=utf-8')
   async staff(@Res({ passthrough: false }) res: Response) {
     try {
-    const [list, depts, stats, expiring] = await Promise.all([
+    const [list, depts, expiring] = await Promise.all([
       this.employees.list(),
       this.departments.list(),
-      this.employees.stats().catch(() => null),
       this.employees.expiring(60),
     ]);
 
@@ -368,14 +367,12 @@ export class UiController {
 
   <nav class="topnav">
     <a href="/system">Overview</a>
-    <a href="/system/apps">Apps</a>
     <a href="/system/modules">Modules</a>
-    <a href="/system/workflows">Workflows</a>
-    <a href="/system/integrations">Integrations</a>
-    <a href="/system/roadmap">Roadmap</a>
-    <a href="/system/documents">Docs</a>
     <a href="/dashboard">HR Dashboard</a>
     <a class="active" href="/staff">Staff</a>
+    <a href="/rosters">Rosters</a>
+    <a href="/contractors">Contractors</a>
+    <a href="/evaluations">Evaluations</a>
     <a href="/api/employees">API</a>
   </nav>
 
@@ -613,14 +610,12 @@ export class UiController {
 
   <nav class="topnav">
     <a href="/system">Overview</a>
-    <a href="/system/apps">Apps</a>
     <a href="/system/modules">Modules</a>
-    <a href="/system/workflows">Workflows</a>
-    <a href="/system/integrations">Integrations</a>
-    <a href="/system/roadmap">Roadmap</a>
-    <a href="/system/documents">Docs</a>
     <a href="/dashboard">HR Dashboard</a>
     <a class="active" href="/staff">Staff</a>
+    <a href="/rosters">Rosters</a>
+    <a href="/contractors">Contractors</a>
+    <a href="/evaluations">Evaluations</a>
     <a href="/api/employees/${esc(emp.id)}">JSON</a>
   </nav>
 
